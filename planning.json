@@ -1,5 +1,15 @@
 {
  "channel": "TWIQCYY",
  "link": "https://twitch.tv/TWIQCYY/",
- "events": []
+ "events": [
+  {
+   "id": "emwap4429",
+   "title": "bf",
+   "game": "vd",
+   "start": "2026-11-11T19:00:00.000Z",
+   "dur": 120,
+   "note": "",
+   "weekly": false
+  }
+ ]
 }
