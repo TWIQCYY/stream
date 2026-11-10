@@ -1,5 +1,15 @@
 {
  "channel": "Ma chaîne",
  "link": "https://twitch.tv/TWIQCYY/",
- "events": []
+ "events": [
+  {
+   "id": "emwb6aa57",
+   "title": "RL",
+   "game": "RocketLeague",
+   "start": "2026-11-10T19:00:00.000Z",
+   "dur": 120,
+   "note": "",
+   "weekly": false
+  }
+ ]
 }
