@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendrier de stream</title>
+<style>
+:root{--bg:#f6f5fb;--card:#fff;--tx:#1d1b2e;--mu:#6b6882;--ac:#7c3aed;--ac2:#ede7fd;--bd:#e3e0f0;--live:#e11d48}
+@media (prefers-color-scheme:dark){:root{--bg:#13111c;--card:#1d1a2b;--tx:#f0eefa;--mu:#9d99b8;--ac:#a78bfa;--ac2:#2a2441;--bd:#2e2a45;--live:#fb7185}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{margin:0;font-size:1.7rem}
+.sub{color:var(--mu);font-size:.9rem;margin-top:2px}
+.hero{background:var(--ac);color:#fff;border-radius:16px;padding:18px;margin:18px 0}
+.hero b{font-size:1.15rem}
+.hero small{opacity:.9;display:block}
+.hero a{color:#fff}
+.day{margin:22px 0 8px;font-weight:700;text-transform:capitalize;color:var(--mu);font-size:.85rem;letter-spacing:.04em}
+.ev{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px}
+.ev.live{border-color:var(--live)}
+.t{min-width:64px;font-weight:700;color:var(--ac)}
+.t small{display:block;color:var(--mu);font-weight:400}
+.ev h3{margin:0;font-size:1rem}
+.ev p{margin:2px 0 0;color:var(--mu);font-size:.9rem}
+.tag{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:99px;background:var(--ac2);color:var(--ac);margin-right:6px}
+.tag.l{background:var(--live);color:#fff}
+.act{margin-top:8px;font-size:.85rem}
+a{color:var(--ac)}
+.empty{text-align:center;color:var(--mu);padding:40px 0}
+</style>
+</head>
+<body>
+<div id="app"><div id="hd"></div><main id="ls"></main></div>
+<script>
+// Fichier de données lu automatiquement (même dossier que cette page)
+var DATA_URL='planning.json'; // utilisé seulement si GitHub n'est pas configuré
+// >>> À REMPLIR : ton dépôt GitHub PUBLIC où admin.html publie planning.json
+var CONFIG={owner:'TWIQCYY',repo:'mon-calendrier',branch:'main',path:'planning.json'};
+var S={channel:'Ma chaîne',link:'',events:[]},error='';
+var tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function pad(n){return n<10?'0'+n:''+n}
+function hm(d){return pad(d.getHours())+':'+pad(d.getMinutes())}
+function dayFmt(d){return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}
+function occ(){
+  var now=new Date(),from=new Date(now-864e5),to=new Date(+now+28*864e5),out=[];
+  (S.events||[]).forEach(function(ev){
+    var d=new Date(ev.start),dur=(ev.dur||120)*6e4;
+    if(!ev.weekly){if(d>=from&&d<=to)out.push({ev:ev,s:new Date(d),e:new Date(+d+dur)});return}
+    while(d<=to){if(d>=from)out.push({ev:ev,s:new Date(d),e:new Date(+d+dur)});d.setDate(d.getDate()+7)}
+  });
+  return out.filter(function(o){return o.e>now}).sort(function(a,b){return a.s-b.s});
+}
+function gcal(o){
+  var f=function(d){return d.toISOString().replace(/[-:]|\.\d{3}/g,'')};
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(o.ev.title+' – '+S.channel)+'&dates='+f(o.s)+'/'+f(o.e)+'&details='+encodeURIComponent((o.ev.note||'')+(S.link?'\n'+S.link:''));
+}
+function countdown(ms){
+  var m=Math.floor(ms/6e4),d=Math.floor(m/1440),h=Math.floor(m%1440/60);m=m%60;
+  return d>0?d+' j '+h+' h':h>0?h+' h '+m+' min':m+' min';
+}
+function render(){
+  var l=occ(),now=new Date(),n=l[0],hero='',h='',last='';
+  document.title='Stream – '+S.channel;
+  if(n){var live=n.s<=now;
+    hero='<div class="hero"><small>'+(live?'🔴 En direct maintenant':'Prochain stream dans '+countdown(n.s-now))+'</small><b>'+esc(n.ev.title)+'</b>'+(n.ev.game?' · '+esc(n.ev.game):'')+'<small>'+dayFmt(n.s)+' à '+hm(n.s)+'</small>'+(S.link?'<small><a href="'+esc(S.link)+'" target="_blank" rel="noopener">Rejoindre le stream →</a></small>':'')+'</div>';
+  }
+  document.getElementById('hd').innerHTML='<h1>📅 '+esc(S.channel)+'</h1><div class="sub">Horaires affichés dans ton fuseau : '+esc(tz)+'</div>'+hero;
+  if(error)h='<div class="empty">'+esc(error)+'</div>';
+  else if(!l.length)h='<div class="empty">Aucun stream prévu pour le moment.</div>';
+  l.forEach(function(o){
+    var k=o.s.toDateString();
+    if(k!==last){last=k;h+='<div class="day">'+dayFmt(o.s)+'</div>'}
+    var live=o.s<=now;
+    h+='<div class="ev'+(live?' live':'')+'"><div class="t">'+hm(o.s)+'<small>→ '+hm(o.e)+'</small></div><div><h3>'+(live?'<span class="tag l">EN DIRECT</span>':'')+esc(o.ev.title)+'</h3><p>'+(o.ev.weekly?'<span class="tag">Chaque semaine</span>':'')+esc(o.ev.game||'')+'</p>'+(o.ev.note?'<p>'+esc(o.ev.note)+'</p>':'')+'<div class="act"><a href="'+esc(gcal(o))+'" target="_blank" rel="noopener">+ Google Agenda</a></div></div></div>';
+  });
+  document.getElementById('ls').innerHTML=h;
+}
+function load(){
+  var gh=CONFIG.owner&&CONFIG.repo,
+      url=gh?'https://api.github.com/repos/'+CONFIG.owner+'/'+CONFIG.repo+'/contents/'+CONFIG.path+'?ref='+CONFIG.branch:DATA_URL+'?t='+Date.now();
+  fetch(url,{cache:'no-store',headers:gh?{Accept:'application/vnd.github.raw+json'}:{}})
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(j){S=j;error='';render()})
+    .catch(function(){if(!S.events.length)error='Impossible de charger le planning pour le moment.';render()});
+}
+render();load();
+setInterval(load,120000);     // recharge le planning toutes les 2 min
+setInterval(render,30000);    // met à jour compte à rebours / « en direct »
+</script>
+</body>
+</html>
